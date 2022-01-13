@@ -18,6 +18,7 @@
 #define SND_BEEP         2
 #define SND_APPLY_PADS   10
 #define SND_LINK_PADS    11
+#define SND_ANALYZING    12
 
 
 
@@ -33,10 +34,12 @@ byte pin_shock_led;
 
 int state;
 bool isAEDOn;
+int playStartId    = SND_UNDEF;
 int playFinishedId = SND_UNDEF;
 
 void togglePadsLed();
 void checkPlayerStatus(uint8_t type, int value);
+void play(byte id);
 
 
 public:
