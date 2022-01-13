@@ -14,35 +14,36 @@
 #define POWER_LED_ID       LED_BUILTIN
 //const int           DEBUG_LED_ID       = LED_BUILTIN;
 
-#define PADS_LED_ID         2
+#define PADS_LED_ID        2
 
 void serialInit();
 void powerStateInit();
 void powerStateUpdate();
 void playerInit();
+void aedInit();
 void aedUpdate();
-void printDetail(uint8_t type, int value);
 
 bool                powerState = false; // AED is on/off
 bool                audioState = false; // player well initialized?
 
 SoftwareSerial      mSwSerial(SW_SERIAL_RX_ID,SW_SERIAL_TX_ID);
 DFRobotDFPlayerMini mPlayer;
-Aed                 mAed(7,PADS_LED_ID, 8,9);
+Aed*                 mAed;
 
 void setup() {
     serialInit();
     powerStateInit();
     playerInit();
+    aedInit();
 }
 
 void loop() {
     powerStateUpdate();
-    if (mPlayer.available()) {
-        //Print message from DFPlayer to handle different errors states.
-        printDetail(mPlayer.readType(), mPlayer.read());
-    }
     if (powerState) aedUpdate();
+}
+
+void aedInit() {
+    mAed = new Aed(mPlayer, POWER_LED_ID, 7,PADS_LED_ID, 8,9);
 }
 
 void serialInit() {
@@ -56,7 +57,6 @@ void serialInit() {
 
 void powerStateInit() {
     pinMode(POWER_BUTTON_ID, INPUT_PULLUP);
-    pinMode(POWER_LED_ID, OUTPUT);
 }
 
 void powerStateUpdate() {
@@ -82,8 +82,12 @@ void powerStateUpdate() {
             lastApplied = current;
             if (current == LOW) {
                 powerState = !powerState; // switch power state
-                digitalWrite(POWER_LED_ID, powerState ? HIGH : LOW);
-                mPlayer.playFolder(1, 2);
+                if (powerState) {
+                    // AED poweron
+                    mAed->powerOn();
+                } else {
+                    mAed->powerOff();
+                }
             }
         }
     }
@@ -101,65 +105,10 @@ void playerInit() {
     }
     Serial.println(F("--- Player online"));
     mPlayer.setTimeOut(500);
-    mPlayer.volume(10);
+    mPlayer.volume(1);
 
 }
 
 void aedUpdate() {
-    mAed.loop();
-}
-
-void printDetail(uint8_t type, int value){
-    switch (type) {
-    case TimeOut:
-        Serial.println(F("Time Out!"));
-        break;
-    case WrongStack:
-        Serial.println(F("Stack Wrong!"));
-        break;
-    case DFPlayerCardInserted:
-        Serial.println(F("Card Inserted!"));
-        break;
-    case DFPlayerCardRemoved:
-        Serial.println(F("Card Removed!"));
-        break;
-    case DFPlayerCardOnline:
-        Serial.println(F("Card Online!"));
-        break;
-    case DFPlayerPlayFinished:
-        Serial.print(F("Number:"));
-        Serial.print(value);
-        Serial.println(F(" Play Finished!"));
-        break;
-    case DFPlayerError:
-        Serial.print(F("DFPlayerError:"));
-        switch (value) {
-        case Busy:
-            Serial.println(F("Card not found"));
-            break;
-        case Sleeping:
-            Serial.println(F("Sleeping"));
-            break;
-        case SerialWrongStack:
-            Serial.println(F("Get Wrong Stack"));
-            break;
-        case CheckSumNotMatch:
-            Serial.println(F("Check Sum Not Match"));
-            break;
-        case FileIndexOut:
-            Serial.println(F("File Index Out of Bound"));
-            break;
-        case FileMismatch:
-            Serial.println(F("Cannot Find File"));
-            break;
-        case Advertise:
-            Serial.println(F("In Advertise"));
-            break;
-        default:
-            break;
-        }
-        break;
-    default:
-        break;
-    }
+    mAed->loop();
 }
