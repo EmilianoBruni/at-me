@@ -14,6 +14,8 @@
 #define POWER_LED_ID       LED_BUILTIN
 //const int           DEBUG_LED_ID       = LED_BUILTIN;
 
+#define PADS_LED_ID         2
+
 void serialInit();
 void powerStateInit();
 void powerStateUpdate();
@@ -26,7 +28,7 @@ bool                audioState = false; // player well initialized?
 
 SoftwareSerial      mSwSerial(SW_SERIAL_RX_ID,SW_SERIAL_TX_ID);
 DFRobotDFPlayerMini mPlayer;
-Aed                 mAed(7,8,9);
+Aed                 mAed(7,PADS_LED_ID, 8,9);
 
 void setup() {
     serialInit();
@@ -36,11 +38,11 @@ void setup() {
 
 void loop() {
     powerStateUpdate();
-    if (powerState) aedUpdate();
     if (mPlayer.available()) {
         //Print message from DFPlayer to handle different errors states.
         printDetail(mPlayer.readType(), mPlayer.read());
     }
+    if (powerState) aedUpdate();
 }
 
 void serialInit() {
@@ -104,7 +106,7 @@ void playerInit() {
 }
 
 void aedUpdate() {
-
+    mAed.loop();
 }
 
 void printDetail(uint8_t type, int value){

@@ -17,18 +17,24 @@ class Aed {
 
 private:
 byte pin_pads;
+byte pin_pads_led;
 byte pin_shock;
 byte pin_shock_led;
 
 int state;
+bool isAEDOn;
+
+void togglePadsLed();
 
 
 public:
 // Setup pin LED and call init()
-Aed(byte pin_pads, byte pin_shock, byte pin_shock_led);
+Aed(byte pin_pads, byte pin_pads_led, byte pin_shock, byte pin_shock_led);
 
 // Setup pins and leds
 void init();
+
+void powerOff();
 
 // moving state and input reaction
 void loop();
