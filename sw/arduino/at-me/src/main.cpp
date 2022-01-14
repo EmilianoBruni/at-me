@@ -22,9 +22,8 @@ void powerStateInit();
 void powerStateUpdate();
 void playerInit();
 void aedInit();
-void aedUpdate();
 
-bool                powerState = false; // AED is on/off
+//bool                powerState = false; // AED is on/off
 bool                audioState = false; // player well initialized?
 
 SoftwareSerial      mSwSerial(SW_SERIAL_RX_ID,SW_SERIAL_TX_ID);
@@ -40,7 +39,7 @@ void setup() {
 
 void loop() {
     powerStateUpdate();
-    if (powerState) aedUpdate();
+    if (mAed->getState() > PowerOff) mAed->loop();
 }
 
 void aedInit() {
@@ -82,8 +81,7 @@ void powerStateUpdate() {
         if (current != lastApplied) {
             lastApplied = current;
             if (current == LOW) {
-                powerState = !powerState; // switch power state
-                if (powerState) {
+                if (mAed->getState() == PowerOff) {
                     // AED poweron
                     mAed->powerOn();
                 } else {
@@ -111,5 +109,4 @@ void playerInit() {
 }
 
 void aedUpdate() {
-    mAed->loop();
 }

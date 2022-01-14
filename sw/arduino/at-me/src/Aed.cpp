@@ -2,41 +2,40 @@
 #include <DFRobotDFPlayerMini.h>
 
 Aed::Aed(DFRobotDFPlayerMini player, byte pin_power_led, byte pin_pads, byte pin_pads_led, byte pin_shock, byte pin_shock_led) {
-    this->player        = player;
-    this->pin_power_led = pin_power_led;
-    this->pin_pads      = pin_pads;
-    this->pin_pads_led  = pin_pads_led;
-    this->pin_shock     = pin_shock;
-    this->pin_shock_led = pin_shock_led;
-    this->isAEDOn       = true;
-    init();
-}
-
-void Aed::init() {
-    pinMode(pin_power_led, OUTPUT);
-    pinMode(pin_pads, INPUT);
-    pinMode(pin_shock, INPUT_PULLUP);
-    pinMode(pin_pads_led, OUTPUT);
-    pinMode(pin_shock_led, OUTPUT);
-    state=PadsNotConnected;
-    setShockLed(false);
-}
-
-void Aed::setShockLed(bool to_on) {
-    digitalWrite(pin_shock_led, to_on ? HIGH : LOW);
-}
-
-void Aed::loop() {
-    if (digitalRead(pin_pads) == HIGH && state < PadsConnected) {
-        setState(PadsConnected);
-    } else if (digitalRead(pin_pads) == LOW && state > PadsNotConnected) {
-        setState(PadsNotConnected);
+        this->player        = player;
+        this->pin_power_led = pin_power_led;
+        this->pin_pads      = pin_pads;
+        this->pin_pads_led  = pin_pads_led;
+        this->pin_shock     = pin_shock;
+        this->pin_shock_led = pin_shock_led;
+        setup();
     }
-    this->togglePadsLed();
-    if (player.available()) {
-        //Print message from DFPlayer to handle different errors states.
-        checkPlayerStatus(player.readType(), player.read());
-        //printDetail(mPlayer.readType(), mPlayer.read());
+
+    void Aed::setup() {
+        pinMode(pin_power_led, OUTPUT);
+        pinMode(pin_pads, INPUT);
+        pinMode(pin_shock, INPUT_PULLUP);
+        pinMode(pin_pads_led, OUTPUT);
+        pinMode(pin_shock_led, OUTPUT);
+        powerOff();
+    }
+
+    void Aed::setShockLed(bool to_on) {
+        digitalWrite(pin_shock_led, to_on ? HIGH : LOW);
+    }
+
+    void Aed::loop() {
+        bool pp = digitalRead(pin_pads);
+        if ( pp == HIGH && state != PowerOff && state < PadsConnected) {
+            setState(PadsConnected);
+        } else if ( pp == LOW && state > PadsNotConnected) {
+            setState(PadsNotConnected);
+        }
+        this->togglePadsLed();
+        if (player.available()) {
+            //Print message from DFPlayer to handle different errors states.
+            checkPlayerStatus(player.readType(), player.read());
+            //printDetail(mPlayer.readType(), mPlayer.read());
     }
     // DEBUG: and then, when finished
     if (playFinishedId == SND_BEEP) {
@@ -55,10 +54,11 @@ void Aed::play(byte id) {
     playFinishedId = SND_UNDEF;
     playStartId=id;
     player.playFolder(getLang(), id);
+    Serial.print(F("Start playing "));
+    Serial.println(id);
 }
 
 void Aed::powerOn() {
-    isAEDOn = true;
     digitalWrite(pin_power_led, HIGH);
     setState(PoweredOn);
 }
@@ -66,21 +66,27 @@ void Aed::powerOn() {
 void Aed::powerOff() {
     digitalWrite(pin_power_led, LOW);
     digitalWrite(pin_pads_led, LOW);
-    isAEDOn = false;
+    setShockLed(false);
+    player.stop();
+    setState(PowerOff);
 }
 
 void Aed::setState(int state) {
-    this->state = state;
     Serial.println("setState " + String(state) + " lang: " + String(getLang()));
+    this->state = state;
     switch (state) {
     case PoweredOn:
         play(SND_BEEP);
+        // if powerof with pads connected don't play SND_ANALYZING without this patch
+        if (digitalRead(pin_pads) == HIGH) delay(100);
         break;
     case PadsNotConnected:
         play(SND_APPLY_PADS);
         break;
     case PadsConnected:
         play(SND_ANALYZING);
+        break;
+    default:
         break;
     }
 }
@@ -97,7 +103,6 @@ void Aed::togglePadsLed() {
         if (now - lastChangingTime > 750) {
             lastChangingTime = now;
             padsLedStatus    = !padsLedStatus;
-            Serial.println(digitalRead(pin_pads));
         }
     }
     digitalWrite(pin_pads_led, padsLedStatus);
@@ -115,6 +120,10 @@ void Aed::checkPlayerStatus(uint8_t type, int value){
         Serial.println(F(" Play Finished!"));
         break;
     }
+}
+
+int Aed::getState() {
+    return state;
 }
 
 byte Aed::getLang() {
