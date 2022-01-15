@@ -6,6 +6,9 @@
 #define APP_NAME           "at-me"
 #define APP_VER_MAJOR      0
 #define APP_VER_MINOR      1
+
+#define VOLUME_VALUE_INIT  2
+
 #define POWER_BUTTON_ID    6
 //#define           POWER_BUTTON_ID     6
 #define SW_SERIAL_RX_ID    10
@@ -61,7 +64,7 @@ void powerStateInit() {
 
 void powerStateUpdate() {
     // last applied button state
-    static int           lastApplied      = LOW;
+    static int           lastApplied      = HIGH;
     // last readed button state
     static int           lastRead         = LOW;
     // last time button state changed
@@ -104,7 +107,7 @@ void playerInit() {
     }
     Serial.println(F("--- Player online"));
     mPlayer.setTimeOut(500);
-    mPlayer.volume(1);
+    mPlayer.volume(VOLUME_VALUE_INIT);
 
 }
 
