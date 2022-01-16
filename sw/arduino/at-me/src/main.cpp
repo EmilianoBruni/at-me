@@ -7,18 +7,19 @@
 #define APP_VER_MAJOR      0
 #define APP_VER_MINOR      1
 
-#define VOLUME_VALUE_INIT  2
-
+#define PADS_LED_ID        2
+#define PADS_ID            3
+#define SHOCK_BUTTON_ID    4
+#define SHOCK_LED_ID       5
 #define POWER_BUTTON_ID    6
-//#define           POWER_BUTTON_ID     6
 #define SW_SERIAL_RX_ID    10
 #define SW_SERIAL_TX_ID    11
+
+#define VOLUME_VALUE_INIT  2
 #define POWER_BUTTON_DELAY 500 // press powerButton for 0.5s
 #define POWER_LED_ID       LED_BUILTIN
 //const int           DEBUG_LED_ID       = LED_BUILTIN;
 
-#define PADS_LED_ID        2
-#define PADS_ID            3
 
 void serialInit();
 void powerStateInit();
@@ -46,7 +47,8 @@ void loop() {
 }
 
 void aedInit() {
-    mAed = new Aed(mPlayer, POWER_LED_ID, PADS_ID,PADS_LED_ID, 8,9);
+    mAed = new Aed(mPlayer, POWER_LED_ID, PADS_ID,PADS_LED_ID,
+                   SHOCK_BUTTON_ID,SHOCK_LED_ID);
 }
 
 void serialInit() {

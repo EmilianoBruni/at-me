@@ -26,8 +26,9 @@ void Aed::setShockLed(bool to_on) {
 
 void Aed::loop() {
     flowControl();
-    this->togglePadsLed();                       // here because it's a timer
+    togglePadsLed();                       // here because it's a timer
                                                  // loop
+    toggleShockLed();
     if (player.available()) checkPlayerStatus(player.readType(), player.read());
 }
 
@@ -93,8 +94,11 @@ void Aed::powerOff() {
     player.stop();
     setState(PowerOff);
 }
+void Aed::setState(int state) {
+    setState(state,0);
+}
 
-void Aed::setState(int state, int opt = 0) {
+void Aed::setState(int state, int opt) {
     Serial.println("setState " + String(state) + " lang: " + String(getLang()));
     this->state = state;
     switch (state) {
@@ -142,6 +146,23 @@ void Aed::togglePadsLed() {
         }
     }
     digitalWrite(pin_pads_led, padsLedStatus);
+}
+
+void Aed::toggleShockLed() {
+    static bool          shockLedStatus    = false;
+    static unsigned long lastChangingTime = 0;
+    if (state != PushButton) {
+        // led only blinks when pads not connected else off
+        shockLedStatus    = false;
+        lastChangingTime = 0;
+    } else {
+        unsigned long now = millis();
+        if (now - lastChangingTime > 750) {
+            lastChangingTime = now;
+            shockLedStatus    = !shockLedStatus;
+        }
+    }
+    digitalWrite(pin_shock_led, shockLedStatus);
 }
 
 void Aed::checkPlayerStatus(uint8_t type, int value){

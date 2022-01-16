@@ -47,11 +47,13 @@ int playStartId    = SND_UNDEF;
 int playFinishedId = SND_UNDEF;
 
 void togglePadsLed();
+void toggleShockLed();
 void checkPlayerStatus(uint8_t type, int value);
 void setup();
 void play(byte id);
 void setShockLed(bool to_on);
-void setState(int state, int opt = 0);
+void setState(int state);
+void setState(int state, int opt);
 void checkPlayNext();
 void flowControl();
 
