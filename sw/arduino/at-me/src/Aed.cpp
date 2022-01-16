@@ -72,6 +72,14 @@ void Aed::flowControl() {
         pushButtonTimer = 0;
         setState(ShockCancelled);
     }
+
+    if (state==PushButton) {
+        bool ps = digitalRead(pin_shock);
+        if (ps == HIGH) {
+            setState(ShockDelivered);
+        }
+    }
+
 }
 
 void Aed::play(byte id) {
@@ -122,6 +130,9 @@ void Aed::setState(int state, int opt) {
         break;
     case ShockCancelled:
         play(SND_SHOCK_CANCEL);
+        break;
+    case ShockDelivered:
+        play(SND_SHOCK_DELIVERED);
         break;
     case InPause:
         play(SND_IN_PAUSE);
@@ -194,6 +205,7 @@ void Aed::checkPlayNext() {
         play(SND_LONG_BEEP);
         break;
     case SND_SHOCK_CANCEL:
+    case SND_SHOCK_DELIVERED:
         setState(InPause);
     }
     playFinishedId = SND_UNDEF;
