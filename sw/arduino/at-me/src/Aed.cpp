@@ -26,7 +26,7 @@ void Aed::setShockLed(bool to_on) {
 
 void Aed::loop() {
     flowControl();
-    togglePadsLed();                       // here because it's a timer
+    togglePadsLed();                             // here because it's a timer
                                                  // loop
     toggleShockLed();
     if (player.available()) checkPlayerStatus(player.readType(), player.read());
@@ -40,44 +40,57 @@ void Aed::flowControl() {
     static unsigned long shockTimer      = 0;    // timer for shock
     static unsigned long pushButtonTimer = 0;    // timer if operator does'nt
                                                  // play shock
+    static unsigned long inPauseTimer    = 0;
+
+    unsigned long        now             = millis();
     // manage linking pads
     bool                 pp              = digitalRead(pin_pads);
     if ( pp == HIGH && state != PowerOff && state < PadsConnected) {
         setState(PadsConnected);
-        if (analizingTimer == 0) analizingTimer = millis();
+        if (analizingTimer == 0) analizingTimer = now;
     } else if ( pp == LOW && state > PadsNotConnected) {
         setState(PadsNotConnected);
-        analizingTimer = 0;
+        analizingTimer = inPauseTimer = shockTimer = pushButtonTimer = 0;
     }
 
     // analizing timer
-    if (analizingTimer>0 && millis() - analizingTimer>8000) {
+    if (analizingTimer>0 && now - analizingTimer>8000) {
         analizingTimer  = 0;
         delayPushButton = 8000;
         setState(ShockRequired); // or not, but for now always yes
-        shockTimer      = millis();
+        shockTimer      = now;
     }
 
     // shock timer every x seconds
-    if (shockTimer > 0 && millis() - shockTimer > delayPushButton ) {
-        shockTimer      = millis();
+    if (shockTimer > 0 && now - shockTimer > delayPushButton ) {
+        Serial.print(F("shock timer with delayPushButton: "));
+        Serial.println(delayPushButton);
+        shockTimer      = now;
         setState(PushButton, delayPushButton != 8000);
         delayPushButton = 15000;
-        if (pushButtonTimer == 0) pushButtonTimer = millis();
+        if (pushButtonTimer == 0) pushButtonTimer = now;
     }
 
     //pushButtonTimer
-    if (pushButtonTimer>0 && millis() - pushButtonTimer > 40000) {
-        shockTimer      = 0;
-        pushButtonTimer = 0;
+    if (pushButtonTimer>0 && now - pushButtonTimer > 40000) {
+        shockTimer   = pushButtonTimer = 0;
         setState(ShockCancelled);
+        inPauseTimer = now;
     }
 
     if (state==PushButton) {
         bool ps = digitalRead(pin_shock);
         if (ps == HIGH) {
+            shockTimer = pushButtonTimer = 0;
             setState(ShockDelivered);
+            inPauseTimer = now;
         }
+    }
+
+    if (inPauseTimer > 0 && now - inPauseTimer > 120000) {
+        inPauseTimer = 0;
+        setState(PadsConnected);
+        if (analizingTimer == 0) analizingTimer = now;
     }
 
 }
@@ -160,17 +173,17 @@ void Aed::togglePadsLed() {
 }
 
 void Aed::toggleShockLed() {
-    static bool          shockLedStatus    = false;
+    static bool          shockLedStatus   = false;
     static unsigned long lastChangingTime = 0;
     if (state != PushButton) {
         // led only blinks when pads not connected else off
-        shockLedStatus    = false;
+        shockLedStatus   = false;
         lastChangingTime = 0;
     } else {
         unsigned long now = millis();
         if (now - lastChangingTime > 750) {
             lastChangingTime = now;
-            shockLedStatus    = !shockLedStatus;
+            shockLedStatus   = !shockLedStatus;
         }
     }
     digitalWrite(pin_shock_led, shockLedStatus);
