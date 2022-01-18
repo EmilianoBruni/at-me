@@ -63,8 +63,6 @@ void Aed::flowControl() {
 
     // shock timer every x seconds
     if (shockTimer > 0 && now - shockTimer > delayPushButton ) {
-        Serial.print(F("shock timer with delayPushButton: "));
-        Serial.println(delayPushButton);
         shockTimer      = now;
         setState(PushButton, delayPushButton != 8000);
         delayPushButton = 15000;
