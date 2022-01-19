@@ -43,12 +43,13 @@ void Aed::flowControl() {
     static unsigned long inPauseTimer    = 0;
 
     unsigned long        now             = millis();
+
     // manage linking pads
-    bool                 pp              = digitalRead(pin_pads);
-    if ( pp == HIGH && state != PowerOff && state < PadsConnected) {
+    bool padsLinkedState = digitalRead(pin_pads);
+    if ( padsLinkedState == HIGH && state != PowerOff && state < PadsConnected) {
         setState(PadsConnected);
         if (analizingTimer == 0) analizingTimer = now;
-    } else if ( pp == LOW && state > PadsNotConnected) {
+    } else if ( padsLinkedState == LOW && state > PadsNotConnected) {
         setState(PadsNotConnected);
         analizingTimer = inPauseTimer = shockTimer = pushButtonTimer = 0;
     }
@@ -79,7 +80,7 @@ void Aed::flowControl() {
     if (state==PushButton) {
         bool ps = digitalRead(pin_shock);
         if (ps == HIGH) {
-            shockTimer = pushButtonTimer = 0;
+            shockTimer   = pushButtonTimer = 0;
             setState(ShockDelivered);
             inPauseTimer = now;
         }
@@ -131,6 +132,9 @@ void Aed::setState(int state, int opt) {
         play(SND_APPLY_PADS);
         break;
     case PadsConnected:
+        setState(Analyzing);
+        break;
+    case Analyzing:
         play(SND_ANALYZING);
         break;
     case ShockRequired:
