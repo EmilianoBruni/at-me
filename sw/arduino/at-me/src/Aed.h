@@ -46,6 +46,7 @@ int state;
 int playStartId    = SND_UNDEF;
 int playFinishedId = SND_UNDEF;
 
+
 void togglePadsLed();
 void toggleShockLed();
 void checkPlayerStatus(uint8_t type, int value);
@@ -56,6 +57,7 @@ void setState(int state);
 void setState(int state, int opt);
 void checkPlayNext();
 void flowControl();
+void toShockOrNotToShock();
 
 
 public:

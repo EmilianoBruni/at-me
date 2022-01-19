@@ -1,5 +1,14 @@
 #include "Aed.h"
+#include <avr/wdt.h>
 #include <DFRobotDFPlayerMini.h>
+
+typedef void (*ISRCaller)();
+
+void (*isr_caller)();
+
+        ISR( WDT_vect ) {
+            isr_caller();
+        }
 
 Aed::Aed(DFRobotDFPlayerMini player, byte pin_power_led, byte pin_pads, byte pin_pads_led, byte pin_shock, byte pin_shock_led) {
     this->player        = player;
@@ -36,7 +45,6 @@ void Aed::flowControl() {
     // here all aed flowchart logic
     static unsigned int  delayPushButton = 8000; // delay to play push button
 
-    static unsigned long analizingTimer  = 0;    // timer for analise
     static unsigned long shockTimer      = 0;    // timer for shock
     static unsigned long pushButtonTimer = 0;    // timer if operator does'nt
                                                  // play shock
@@ -48,18 +56,9 @@ void Aed::flowControl() {
     bool padsLinkedState = digitalRead(pin_pads);
     if ( padsLinkedState == HIGH && state != PowerOff && state < PadsConnected) {
         setState(PadsConnected);
-        if (analizingTimer == 0) analizingTimer = now;
     } else if ( padsLinkedState == LOW && state > PadsNotConnected) {
         setState(PadsNotConnected);
-        analizingTimer = inPauseTimer = shockTimer = pushButtonTimer = 0;
-    }
-
-    // analizing timer
-    if (analizingTimer>0 && now - analizingTimer>8000) {
-        analizingTimer  = 0;
-        delayPushButton = 8000;
-        setState(ShockRequired); // or not, but for now always yes
-        shockTimer      = now;
+        inPauseTimer = shockTimer = pushButtonTimer = 0;
     }
 
     // shock timer every x seconds
@@ -89,7 +88,7 @@ void Aed::flowControl() {
     if (inPauseTimer > 0 && now - inPauseTimer > 120000) {
         inPauseTimer = 0;
         setState(PadsConnected);
-        if (analizingTimer == 0) analizingTimer = now;
+        //if (analizingTimer == 0) analizingTimer = now;
     }
 
 }
@@ -121,6 +120,7 @@ void Aed::setState(int state) {
 void Aed::setState(int state, int opt) {
     Serial.println("setState " + String(state) + " lang: " + String(getLang()));
     this->state = state;
+    cli(); // reset interrupts
     switch (state) {
     case PoweredOn:
         play(SND_BEEP);
@@ -136,13 +136,27 @@ void Aed::setState(int state, int opt) {
         break;
     case Analyzing:
         play(SND_ANALYZING);
+        // wait 8 seconds and go to shock required or not
+        //WDTCSR = (1 << WDIE) | (1 << WDP3) | (1 << WDP0); //8s
+        wdt_enable(WDTO_8S);
+        wdt_reset();
+        // set watchdog function to execute in 8sec
+        isr_caller = [this]() {toShockOrNotToShock();};
+        sei();                                             // enable interrupt
         break;
     case ShockRequired:
         play(SND_SHOCK_ADVISED);
+        // wait 8 seconds and now it's time to push button
+        WDTCSR = (1 << WDIE) | (1 << WDP3) | (1 << WDP0); //8s
+        // set watchdog function to execute in 8sec
+        //Aed* _this = this;
+        isr_caller = [this]() {setState(PushButton);};
+        sei();                                             // enable interrupt
         break;
     case PushButton:
-        opt == 0 ? play(SND_PUSH_BUTTON) : play(SND_PUSH_BUTTON_AGAIN);
-        break;
+        play(SND_PUSH_BUTTON);
+        // TO DO:
+        play(SND_PUSH_BUTTON_AGAIN);
     case ShockCancelled:
         play(SND_SHOCK_CANCEL);
         break;
@@ -155,6 +169,10 @@ void Aed::setState(int state, int opt) {
     default:
         break;
     }
+}
+void Aed::toShockOrNotToShock() {
+    // for now always shock
+    setState(ShockRequired);
 }
 
 void Aed::togglePadsLed() {
