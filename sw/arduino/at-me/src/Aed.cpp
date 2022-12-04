@@ -2,13 +2,12 @@
 #include <avr/wdt.h>
 #include <DFRobotDFPlayerMini.h>
 
-typedef void (*ISRCaller)();
+using ISRCaller = void(Aed::*)();
+ISRCaller isr_caller = &Aed::powerOn;
 
-void (*isr_caller)();
-
-        ISR( WDT_vect ) {
-            isr_caller();
-        }
+ISR( WDT_vect ) {
+    isr_caller();
+}
 
 Aed::Aed(DFRobotDFPlayerMini player, byte pin_power_led, byte pin_pads, byte pin_pads_led, byte pin_shock, byte pin_shock_led) {
     this->player        = player;
@@ -141,8 +140,8 @@ void Aed::setState(int state, int opt) {
         wdt_enable(WDTO_8S);
         wdt_reset();
         // set watchdog function to execute in 8sec
-        isr_caller = [this]() {toShockOrNotToShock();};
-        sei();                                             // enable interrupt
+        isr_caller = &Aed::toShockOrNotToShock;
+        sei();                                            // enable interrupt
         break;
     case ShockRequired:
         play(SND_SHOCK_ADVISED);
@@ -150,8 +149,8 @@ void Aed::setState(int state, int opt) {
         WDTCSR = (1 << WDIE) | (1 << WDP3) | (1 << WDP0); //8s
         // set watchdog function to execute in 8sec
         //Aed* _this = this;
-        isr_caller = [this]() {setState(PushButton);};
-        sei();                                             // enable interrupt
+        isr_caller = &Aed::setState(PushButton);
+        sei();                                            // enable interrupt
         break;
     case PushButton:
         play(SND_PUSH_BUTTON);
