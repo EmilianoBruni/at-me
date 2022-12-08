@@ -39,13 +39,6 @@ void Aed::setup()
     powerOff();
 
     // // ISR init (wdt_enbled/wdt_disabled is BUGGED and reset card)
-    // if (MCUSR & _BV(WDRF))
-    // {                                     // If a reset was caused by the Watchdog Timer...
-    //     MCUSR &= ~_BV(WDRF);              // Clear the WDT reset flag
-    //     WDTCSR |= (_BV(WDCE) | _BV(WDE)); // Enable the WD Change Bit
-    //     WDTCSR = 0x00;                    // Disable the WDT
-    // }
-
     // // Set up Watch Dog Timer for Inactivity
     WDTCSR |= (_BV(WDCE) | _BV(WDE)); // Enable the WD Change Bit
     WDTCSR = _BV(WDIE) |              // Enable WDT Interrupt
