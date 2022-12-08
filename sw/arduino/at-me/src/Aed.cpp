@@ -1,131 +1,176 @@
 #include "Aed.h"
 #include <avr/wdt.h>
+#include <avr/sleep.h> // Supplied AVR Sleep Macros
 #include <DFRobotDFPlayerMini.h>
 
-using ISRCaller = void(Aed::*)();
-ISRCaller isr_caller = &Aed::powerOn;
+static int isrNextStateRequest = Invalid;
+static int isrNextStateApply = Invalid;
 
-ISR( WDT_vect ) {
-    isr_caller();
+ISR(WDT_vect)
+{
+    sleep_disable(); // Disable Sleep on Wakeup
+    Serial.println("Inside ISR. Isr State is " + String(isrNextStateRequest));
+    if (isrNextStateRequest != Invalid)
+    {
+        isrNextStateApply = isrNextStateRequest;
+        isrNextStateRequest = Invalid;
+    }
+    sleep_enable(); // Enable Sleep Mode
 }
 
-Aed::Aed(DFRobotDFPlayerMini player, byte pin_power_led, byte pin_pads, byte pin_pads_led, byte pin_shock, byte pin_shock_led) {
-    this->player        = player;
+Aed::Aed(DFRobotDFPlayerMini player, byte pin_power_led, byte pin_pads, byte pin_pads_led, byte pin_shock, byte pin_shock_led)
+{
+    this->player = player;
     this->pin_power_led = pin_power_led;
-    this->pin_pads      = pin_pads;
-    this->pin_pads_led  = pin_pads_led;
-    this->pin_shock     = pin_shock;
+    this->pin_pads = pin_pads;
+    this->pin_pads_led = pin_pads_led;
+    this->pin_shock = pin_shock;
     this->pin_shock_led = pin_shock_led;
     setup();
 }
 
-void Aed::setup() {
+void Aed::setup()
+{
     pinMode(pin_power_led, OUTPUT);
     pinMode(pin_pads, INPUT);
     pinMode(pin_shock, INPUT_PULLUP);
     pinMode(pin_pads_led, OUTPUT);
     pinMode(pin_shock_led, OUTPUT);
     powerOff();
+
+    // // ISR init (wdt_enbled/wdt_disabled is BUGGED and reset card)
+    // if (MCUSR & _BV(WDRF))
+    // {                                     // If a reset was caused by the Watchdog Timer...
+    //     MCUSR &= ~_BV(WDRF);              // Clear the WDT reset flag
+    //     WDTCSR |= (_BV(WDCE) | _BV(WDE)); // Enable the WD Change Bit
+    //     WDTCSR = 0x00;                    // Disable the WDT
+    // }
+
+    // // Set up Watch Dog Timer for Inactivity
+    WDTCSR |= (_BV(WDCE) | _BV(WDE)); // Enable the WD Change Bit
+    WDTCSR = _BV(WDIE) |              // Enable WDT Interrupt
+             _BV(WDP2) | _BV(WDP1);   // Set Timeout to ~1 seconds
+    WDTCSR = 0x00;                    // Disable the WDT
 }
 
-void Aed::setShockLed(bool to_on) {
+void Aed::setShockLed(bool to_on)
+{
     digitalWrite(pin_shock_led, to_on ? HIGH : LOW);
 }
 
-void Aed::loop() {
+void Aed::loop()
+{
+    checkISRState();
     flowControl();
-    togglePadsLed();                             // here because it's a timer
-                                                 // loop
+    togglePadsLed(); // here because it's a timer
+                     // loop
     toggleShockLed();
-    if (player.available()) checkPlayerStatus(player.readType(), player.read());
+    if (player.available())
+        checkPlayerStatus(player.readType(), player.read());
 }
 
-void Aed::flowControl() {
+void Aed::flowControl()
+{
     // here all aed flowchart logic
-    static unsigned int  delayPushButton = 8000; // delay to play push button
+    static unsigned int delayPushButton = 8000; // delay to play push button
+    static unsigned long shockTimer = 0;        // timer for shock
+    static unsigned long pushButtonTimer = 0;   // timer if operator does'nt
+                                                // play shock
+    static unsigned long inPauseTimer = 0;
 
-    static unsigned long shockTimer      = 0;    // timer for shock
-    static unsigned long pushButtonTimer = 0;    // timer if operator does'nt
-                                                 // play shock
-    static unsigned long inPauseTimer    = 0;
-
-    unsigned long        now             = millis();
+    unsigned long now = millis();
 
     // manage linking pads
     bool padsLinkedState = digitalRead(pin_pads);
-    if ( padsLinkedState == HIGH && state != PowerOff && state < PadsConnected) {
+    if (padsLinkedState == HIGH && state != PowerOff && state < PadsConnected)
+    {
         setState(PadsConnected);
-    } else if ( padsLinkedState == LOW && state > PadsNotConnected) {
+    }
+    else if (padsLinkedState == LOW && state > PadsNotConnected)
+    {
         setState(PadsNotConnected);
         inPauseTimer = shockTimer = pushButtonTimer = 0;
     }
 
     // shock timer every x seconds
-    if (shockTimer > 0 && now - shockTimer > delayPushButton ) {
-        shockTimer      = now;
+    if (shockTimer > 0 && now - shockTimer > delayPushButton)
+    {
+        shockTimer = now;
         setState(PushButton, delayPushButton != 8000);
         delayPushButton = 15000;
-        if (pushButtonTimer == 0) pushButtonTimer = now;
+        if (pushButtonTimer == 0)
+            pushButtonTimer = now;
     }
 
-    //pushButtonTimer
-    if (pushButtonTimer>0 && now - pushButtonTimer > 40000) {
-        shockTimer   = pushButtonTimer = 0;
+    // pushButtonTimer
+    if (pushButtonTimer > 0 && now - pushButtonTimer > 40000)
+    {
+        shockTimer = pushButtonTimer = 0;
         setState(ShockCancelled);
         inPauseTimer = now;
     }
 
-    if (state==PushButton) {
+    if (state == PushButton)
+    {
         bool ps = digitalRead(pin_shock);
-        if (ps == HIGH) {
-            shockTimer   = pushButtonTimer = 0;
+        if (ps == HIGH)
+        {
+            shockTimer = pushButtonTimer = 0;
             setState(ShockDelivered);
             inPauseTimer = now;
         }
     }
 
-    if (inPauseTimer > 0 && now - inPauseTimer > 120000) {
+    if (inPauseTimer > 0 && now - inPauseTimer > 120000)
+    {
         inPauseTimer = 0;
         setState(PadsConnected);
-        //if (analizingTimer == 0) analizingTimer = now;
+        // if (analizingTimer == 0) analizingTimer = now;
     }
-
 }
 
-void Aed::play(byte id) {
+void Aed::play(byte id)
+{
     playFinishedId = SND_UNDEF;
-    playStartId    = id;
+    playStartId = id;
     player.playFolder(getLang(), id);
     Serial.print(F("Start playing "));
     Serial.println(id);
 }
 
-void Aed::powerOn() {
+void Aed::powerOn()
+{
     digitalWrite(pin_power_led, HIGH);
     setState(PoweredOn);
 }
 
-void Aed::powerOff() {
+void Aed::powerOff()
+{
     digitalWrite(pin_power_led, LOW);
     digitalWrite(pin_pads_led, LOW);
     setShockLed(false);
     player.stop();
     setState(PowerOff);
 }
-void Aed::setState(int state) {
-    setState(state,0);
+void Aed::setState(int state)
+{
+    setState(state, 0);
 }
 
-void Aed::setState(int state, int opt) {
+void Aed::setState(int state, int opt)
+{
     Serial.println("setState " + String(state) + " lang: " + String(getLang()));
+    WDTCSR |= (_BV(WDCE) | _BV(WDE) | _BV(WDIE)); // Enable the WD Change Bit
+    WDTCSR = 0x00;                                // Disable the WDT
     this->state = state;
-    cli(); // reset interrupts
-    switch (state) {
+    switch (state)
+    {
     case PoweredOn:
         play(SND_BEEP);
         // if powerof with pads connected don't play SND_ANALYZING without this
         // patch
-        if (digitalRead(pin_pads) == HIGH) delay(100);
+        if (digitalRead(pin_pads) == HIGH)
+            delay(100);
         break;
     case PadsNotConnected:
         play(SND_APPLY_PADS);
@@ -136,26 +181,28 @@ void Aed::setState(int state, int opt) {
     case Analyzing:
         play(SND_ANALYZING);
         // wait 8 seconds and go to shock required or not
-        //WDTCSR = (1 << WDIE) | (1 << WDP3) | (1 << WDP0); //8s
-        wdt_enable(WDTO_8S);
-        wdt_reset();
+        WDTCSR |= (_BV(WDCE) | _BV(WDE) | _BV(WDIE));     // Enable the WD Change Bit
+        WDTCSR = (1 << WDIE) | (1 << WDP3) | (1 << WDP0); // 8s
+        // run watchdog
+        sei();
         // set watchdog function to execute in 8sec
-        isr_caller = &Aed::toShockOrNotToShock;
-        sei();                                            // enable interrupt
+        isrNextStateRequest = ShockRequired;
         break;
     case ShockRequired:
         play(SND_SHOCK_ADVISED);
         // wait 8 seconds and now it's time to push button
-        WDTCSR = (1 << WDIE) | (1 << WDP3) | (1 << WDP0); //8s
+        WDTCSR |= (_BV(WDCE) | _BV(WDE) | _BV(WDIE));     // Enable the WD Change Bit
+        WDTCSR = (1 << WDIE) | (1 << WDP3) | (1 << WDP0); // 8s
+        // run watchdog
+        sei();
         // set watchdog function to execute in 8sec
-        //Aed* _this = this;
-        isr_caller = &Aed::setState(PushButton);
-        sei();                                            // enable interrupt
+        isrNextStateRequest = PushButton;
         break;
     case PushButton:
         play(SND_PUSH_BUTTON);
         // TO DO:
         play(SND_PUSH_BUTTON_AGAIN);
+        break;
     case ShockCancelled:
         play(SND_SHOCK_CANCEL);
         break;
@@ -169,50 +216,73 @@ void Aed::setState(int state, int opt) {
         break;
     }
 }
-void Aed::toShockOrNotToShock() {
+
+void Aed::toShockOrNotToShock()
+{
     // for now always shock
     setState(ShockRequired);
 }
 
-void Aed::togglePadsLed() {
-    static bool          padsLedStatus    = false;
+void Aed::togglePadsLed()
+{
+    static bool padsLedStatus = false;
     static unsigned long lastChangingTime = 0;
-    if (state > PadsNotConnected ) {
+    if (state > PadsNotConnected)
+    {
         // led only blinks when pads not connected else off
-        padsLedStatus    = false;
+        padsLedStatus = false;
         lastChangingTime = 0;
-    } else {
+    }
+    else
+    {
         unsigned long now = millis();
-        if (now - lastChangingTime > 750) {
+        if (now - lastChangingTime > 750)
+        {
             lastChangingTime = now;
-            padsLedStatus    = !padsLedStatus;
+            padsLedStatus = !padsLedStatus;
         }
     }
     digitalWrite(pin_pads_led, padsLedStatus);
 }
 
-void Aed::toggleShockLed() {
-    static bool          shockLedStatus   = false;
+void Aed::toggleShockLed()
+{
+    static bool shockLedStatus = false;
     static unsigned long lastChangingTime = 0;
-    if (state != PushButton) {
+    if (state != PushButton)
+    {
         // led only blinks when pads not connected else off
-        shockLedStatus   = false;
+        shockLedStatus = false;
         lastChangingTime = 0;
-    } else {
+    }
+    else
+    {
         unsigned long now = millis();
-        if (now - lastChangingTime > 750) {
+        if (now - lastChangingTime > 750)
+        {
             lastChangingTime = now;
-            shockLedStatus   = !shockLedStatus;
+            shockLedStatus = !shockLedStatus;
         }
     }
     digitalWrite(pin_shock_led, shockLedStatus);
 }
 
-void Aed::checkPlayerStatus(uint8_t type, int value){
-    switch (type) {
+void Aed::checkISRState()
+{
+    if (isrNextStateApply != Invalid)
+    {
+        setState(isrNextStateApply);
+        isrNextStateApply = Invalid;
+    }
+}
+
+void Aed::checkPlayerStatus(uint8_t type, int value)
+{
+    switch (type)
+    {
     case DFPlayerPlayFinished:
         playFinishedId = playStartId;
-        playStartId    = SND_UNDEF;
+        playStartId = SND_UNDEF;
         Serial.print(F("Number:"));
         Serial.print(value);
         Serial.print(F(" - Folder id:"));
@@ -223,9 +293,11 @@ void Aed::checkPlayerStatus(uint8_t type, int value){
     }
 }
 
-void Aed::checkPlayNext() {
+void Aed::checkPlayNext()
+{
     // check if there is something to play when finished an mp3
-    switch (playFinishedId) {
+    switch (playFinishedId)
+    {
     case SND_BEEP:
         setState(PadsNotConnected);
         break;
@@ -243,10 +315,12 @@ void Aed::checkPlayNext() {
     playFinishedId = SND_UNDEF;
 }
 
-int Aed::getState() {
+int Aed::getState()
+{
     return state;
 }
 
-byte Aed::getLang() {
+byte Aed::getLang()
+{
     return SND_LANG_IT;
 }
