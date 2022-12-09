@@ -15,7 +15,7 @@
 #define SW_SERIAL_RX_ID    10
 #define SW_SERIAL_TX_ID    11
 
-#define VOLUME_VALUE_INIT  2
+#define VOLUME_VALUE_INIT  20  // 0..30
 #define POWER_BUTTON_DELAY 500 // press powerButton for 0.5s
 #define POWER_LED_ID       LED_BUILTIN
 //const int           DEBUG_LED_ID       = LED_BUILTIN;
