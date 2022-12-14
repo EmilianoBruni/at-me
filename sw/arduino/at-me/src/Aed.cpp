@@ -3,8 +3,10 @@
 #include <avr/sleep.h> // Supplied AVR Sleep Macros
 #include <DFRobotDFPlayerMini.h>
 
-static int isrNextStateRequest = Invalid;
-static int isrNextStateApply = Invalid;
+static int isrNextStateRequest = Invalid; // ISR_request
+static int isrNextStateApply = Invalid; // ISR apply
+static int seqProgram = PRG_TWO_SHOCK_THEN_NOT; // shock sequence program
+static int seqCount = 0; // shock sequence count
 
 ISR(WDT_vect)
 {
@@ -103,6 +105,14 @@ void Aed::flowControl()
         inPauseTimer = now;
     }
 
+    // Shock not needed
+    if (state == RequestPauseByShockNotNeeded) {
+        shockTimer = pushButtonTimer = 0;
+        setState(InPause);
+        inPauseTimer = now;
+
+    }
+
     if (state == PushButton)
     {
         bool ps = digitalRead(pin_shock);
@@ -134,6 +144,8 @@ void Aed::play(byte id)
 void Aed::powerOn()
 {
     digitalWrite(pin_power_led, HIGH);
+    // reset some global variables
+    seqCount = 0; 
     setState(PoweredOn);
 }
 
@@ -179,7 +191,7 @@ void Aed::setState(int state, int opt)
         // run watchdog
         sei();
         // set watchdog function to execute in 8sec
-        isrNextStateRequest = ShockRequired;
+        isrNextStateRequest = toShockOrNotToShock();
         break;
     case ShockRequired:
         play(SND_SHOCK_ADVISED);
@@ -190,6 +202,9 @@ void Aed::setState(int state, int opt)
         sei();
         // set watchdog function to execute in 8sec
         isrNextStateRequest = PushButton;
+        break;
+    case ShockNotNeeded:
+        play(SND_SHOCK_NOT_NEEDED);
         break;
     case PushButton:
         play(SND_PUSH_BUTTON);
@@ -210,10 +225,14 @@ void Aed::setState(int state, int opt)
     }
 }
 
-void Aed::toShockOrNotToShock()
+int Aed::toShockOrNotToShock()
 {
     // for now always shock
-    setState(ShockRequired);
+    //return ShockRequired;
+    if (seqProgram == PRG_TWO_SHOCK_THEN_NOT) {
+        return seqCount++ >1 ? ShockNotNeeded : ShockRequired;
+    }
+    return ShockNotNeeded;
 }
 
 void Aed::togglePadsLed()
@@ -304,6 +323,9 @@ void Aed::checkPlayNext()
     case SND_SHOCK_CANCEL:
     case SND_SHOCK_DELIVERED:
         setState(InPause);
+        break;
+    case SND_SHOCK_NOT_NEEDED:
+        setState(RequestPauseByShockNotNeeded);
     }
     playFinishedId = SND_UNDEF;
 }
