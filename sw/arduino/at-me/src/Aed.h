@@ -10,11 +10,12 @@
 #define PadsNotConnected 2
 #define PadsConnected 3
 #define Analyzing 4
-#define ShockNotRequired 5
+#define ShockNotNeeded 5
 #define ShockRequired 6
 #define PushButton 7
 #define ShockDelivered 8
 #define ShockCancelled 9
+#define RequestPauseByShockNotNeeded 10
 #define InPause 99
 
 #define SND_UNDEF -1
@@ -29,7 +30,10 @@
 #define SND_PUSH_BUTTON_AGAIN 17
 #define SND_SHOCK_DELIVERED 18
 #define SND_SHOCK_CANCEL 19
+#define SND_SHOCK_NOT_NEEDED 20
 #define SND_IN_PAUSE 99
+
+#define PRG_TWO_SHOCK_THEN_NOT 1
 
 
 class Aed
@@ -57,7 +61,7 @@ private:
     void setState(int state, int opt);
     void checkPlayNext();
     void flowControl();
-    void toShockOrNotToShock();
+    int toShockOrNotToShock();
     void checkISRState();
 
 public:
