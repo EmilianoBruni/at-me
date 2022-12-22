@@ -11,8 +11,8 @@
 #define PADS_ID            3
 #define SHOCK_BUTTON_ID    4
 #define SHOCK_LED_ID       5
-#define POWER_BUTTON_ID    7
-#define POWER_LED_ID       10
+#define POWER_BUTTON_ID    6
+#define POWER_LED_ID       7
 #define SW_SERIAL_RX_ID    11
 #define SW_SERIAL_TX_ID    12
 
