@@ -13,7 +13,7 @@
 #define SHOCK_LED_ID       5
 #define POWER_BUTTON_ID    6
 #define POWER_LED_ID       7
-#define SW_SERIAL_RX_ID    11
+#define SW_SERIAL_RX_ID    8
 #define SW_SERIAL_TX_ID    12
 
 #define VOLUME_VALUE_INIT  23  // 0..30
