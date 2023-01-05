@@ -3,10 +3,10 @@
 #include <avr/sleep.h> // Supplied AVR Sleep Macros
 #include <DFRobotDFPlayerMini.h>
 
-static int isrNextStateRequest = Invalid; // ISR_request
-static int isrNextStateApply = Invalid; // ISR apply
+static int isrNextStateRequest = Invalid;       // ISR_request
+static int isrNextStateApply = Invalid;         // ISR apply
 static int seqProgram = PRG_TWO_SHOCK_THEN_NOT; // shock sequence program
-static int seqCount = 0; // shock sequence count
+static int seqCount = 0;                        // shock sequence count
 
 ISR(WDT_vect)
 {
@@ -67,10 +67,11 @@ void Aed::loop()
 void Aed::flowControl()
 {
     // here all aed flowchart logic
-    static unsigned int delayPushButton = 8000; // delay to play push button
-    static unsigned long shockTimer = 0;        // timer for shock
-    static unsigned long pushButtonTimer = 0;   // timer if operator does'nt
-                                                // play shock
+    static unsigned int delayPushButton = 8000;  // delay to play push button
+    static unsigned long shockTimer = 0;         // timer for shock
+    static unsigned long pushButtonTimer = 0;    // timer if operator does'nt
+                                                 // play shock
+    static unsigned long padsConnectedTimer = 0; // timer for delay padsConn
     static unsigned long inPauseTimer = 0;
 
     unsigned long now = millis();
@@ -79,7 +80,30 @@ void Aed::flowControl()
     bool padsLinkedState = digitalRead(pin_pads);
     if (padsLinkedState == HIGH && state != PowerOff && state < PadsConnected)
     {
-        setState(PadsConnected);
+        if (padsConnectedTimer > 0)
+        {
+            // pads connected, wait for 1 sec of continuos connection
+            if (now - padsConnectedTimer > 2000)
+            {
+                // if connected for more than 1 sec, ok, it's time to analyze
+                padsConnectedTimer = 0;
+                setState(PadsConnected);
+            }
+        }
+        else
+        {
+            // I see pads connected for first time, start padsConnected Timer
+            padsConnectedTimer = now;
+        }
+    }
+    else if (padsLinkedState == LOW && state == PadsNotConnected)
+    {
+        // pads connection goes up/down fast
+        if (padsConnectedTimer > 0 )
+        {
+            // if not pads up/down fast or pads not connected for more than 1 sec
+            padsConnectedTimer = 0;
+        }
     }
     else if (padsLinkedState == LOW && state > PadsNotConnected)
     {
@@ -110,7 +134,6 @@ void Aed::flowControl()
         shockTimer = pushButtonTimer = 0;
         setState(InPause);
         inPauseTimer = now;
-
     }
 
     if (state == PushButton)
@@ -124,6 +147,7 @@ void Aed::flowControl()
         }
     }
 
+    // 2 minutes are gone, new analysis
     if (inPauseTimer > 0 && now - inPauseTimer > 120000)
     {
         inPauseTimer = 0;
@@ -145,7 +169,7 @@ void Aed::powerOn()
 {
     digitalWrite(pin_power_led, HIGH);
     // reset some global variables
-    seqCount = 0; 
+    seqCount = 0;
     setState(PoweredOn);
 }
 
@@ -178,6 +202,7 @@ void Aed::setState(int state, int opt)
             delay(100);
         break;
     case PadsNotConnected:
+        seqCount = 0; // reset sequence count if pad not connected
         play(SND_APPLY_PADS);
         break;
     case PadsConnected:
@@ -227,10 +252,9 @@ void Aed::setState(int state, int opt)
 
 int Aed::toShockOrNotToShock()
 {
-    // for now always shock
-    //return ShockRequired;
+    // for now, shock + shock + shock not required + shock not required + ...
     if (seqProgram == PRG_TWO_SHOCK_THEN_NOT) {
-        return seqCount++ >1 ? ShockNotNeeded : ShockRequired;
+        return seqCount++ > 1 ? ShockNotNeeded : ShockRequired;
     }
     return ShockNotNeeded;
 }
