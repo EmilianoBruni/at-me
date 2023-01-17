@@ -20,8 +20,9 @@ ISR(WDT_vect)
     sleep_enable(); // Enable Sleep Mode
 }
 
-Aed::Aed(DFRobotDFPlayerMini player, byte pin_power_led, byte pin_pads, byte pin_pads_led, byte pin_shock, byte pin_shock_led)
+Aed::Aed(byte lang, DFRobotDFPlayerMini player, byte pin_power_led, byte pin_pads, byte pin_pads_led, byte pin_shock, byte pin_shock_led)
 {
+    this->lang = lang;
     this->player = player;
     this->pin_power_led = pin_power_led;
     this->pin_pads = pin_pads;
@@ -35,7 +36,6 @@ void Aed::setup()
 {
     pinMode(pin_power_led, OUTPUT);
     pinMode(pin_pads, INPUT);
-    pinMode(pin_shock, INPUT_PULLUP);
     pinMode(pin_pads_led, OUTPUT);
     pinMode(pin_shock_led, OUTPUT);
     powerOff();
@@ -160,7 +160,7 @@ void Aed::play(byte id)
 {
     playFinishedId = SND_UNDEF;
     playStartId = id;
-    player.playFolder(getLang(), id);
+    player.playFolder(this->lang, id);
     Serial.print(F("Start playing "));
     Serial.println(id);
 }
@@ -188,7 +188,7 @@ void Aed::setState(int state)
 
 void Aed::setState(int state, int opt)
 {
-    Serial.println("setState " + String(state) + " lang: " + String(getLang()));
+    Serial.println("Aed::setState " + String(state) + " lang: " + String(lang));
     WDTCSR |= (_BV(WDCE) | _BV(WDE) | _BV(WDIE)); // Enable the WD Change Bit
     WDTCSR = 0x00;                                // Disable the WDT
     this->state = state;
@@ -357,9 +357,4 @@ void Aed::checkPlayNext()
 int Aed::getState()
 {
     return state;
-}
-
-byte Aed::getLang()
-{
-    return SND_LANG_IT;
 }

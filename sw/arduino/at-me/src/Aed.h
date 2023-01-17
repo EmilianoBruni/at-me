@@ -19,7 +19,6 @@
 #define InPause 99
 
 #define SND_UNDEF -1
-#define SND_LANG_IT 1
 #define SND_BEEP 2
 #define SND_APPLY_PADS 10
 #define SND_LINK_PADS 11
@@ -40,6 +39,7 @@ class Aed
 {
 
 private:
+    byte lang;
     DFRobotDFPlayerMini player;
     byte pin_power_led;
     byte pin_pads;
@@ -66,7 +66,7 @@ private:
 
 public:
     // Setup pin LED and call init()
-    Aed(DFRobotDFPlayerMini player, byte pin_power_led, byte pin_pads, byte pin_pads_led, byte pin_shock, byte pin_shock_led);
+    Aed(byte lang, DFRobotDFPlayerMini player, byte pin_power_led, byte pin_pads, byte pin_pads_led, byte pin_shock, byte pin_shock_led);
     // Setup pins and leds
     void powerOn();
     void powerOff();
