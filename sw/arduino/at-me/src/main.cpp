@@ -2,10 +2,13 @@
 #include <SoftwareSerial.h>
 #include <DFRobotDFPlayerMini.h>
 #include <Aed.h>
+#include <Admin.h>
 
 #define APP_NAME           "at-me"
 #define APP_VER_MAJOR      0
 #define APP_VER_MINOR      1
+
+#define SND_LANG_IT        1
 
 #define PADS_LED_ID        2
 #define PADS_ID            3
@@ -22,10 +25,12 @@
 
 
 void serialInit();
-void powerStateInit();
+void digitalInputInit();
 void powerStateUpdate();
 void playerInit();
 void aedInit();
+void adminInit();
+byte getLang();
 
 //bool                powerState = false; // AED is on/off
 bool                audioState = false; // player well initialized?
@@ -33,22 +38,29 @@ bool                audioState = false; // player well initialized?
 SoftwareSerial      mSwSerial(SW_SERIAL_RX_ID,SW_SERIAL_TX_ID);
 DFRobotDFPlayerMini mPlayer;
 Aed*                mAed;
+Admin*              mAdmin;
 
 void setup() {
     serialInit();
-    powerStateInit();
+    digitalInputInit();
     playerInit();
     aedInit();
+    adminInit();
 }
 
 void loop() {
     powerStateUpdate();
     if (mAed->getState() > PowerOff) mAed->loop();
+    if (mAdmin->getState() > PowerOff) mAdmin->loop();
 }
 
 void aedInit() {
-    mAed = new Aed(mPlayer, POWER_LED_ID, PADS_ID,PADS_LED_ID,
+    mAed = new Aed(getLang(), mPlayer, POWER_LED_ID, PADS_ID,PADS_LED_ID,
                    SHOCK_BUTTON_ID,SHOCK_LED_ID);
+}
+
+void adminInit() {
+    mAdmin = new Admin(getLang());
 }
 
 void serialInit() {
@@ -60,8 +72,9 @@ void serialInit() {
                    " - Copyright (c) 2022 - Emiliano Bruni <info@ebruni.it>");
 }
 
-void powerStateInit() {
+void digitalInputInit() {
     pinMode(POWER_BUTTON_ID, INPUT_PULLUP);
+    pinMode(SHOCK_BUTTON_ID, INPUT_PULLUP);
 }
 
 void powerStateUpdate() {
@@ -86,11 +99,24 @@ void powerStateUpdate() {
         if (current != lastApplied) {
             lastApplied = current;
             if (current == LOW) {
-                if (mAed->getState() == PowerOff) {
-                    // AED poweron
-                    mAed->powerOn();
+                // press poweron/off
+                int shockButton = digitalRead(SHOCK_BUTTON_ID);
+                Serial.println("mAed state: " + String(mAed->getState()));
+                Serial.println("mAdmin state: " + String(mAdmin->getState()));
+                Serial.println("Shock button: " + String(shockButton));
+                if (mAed->getState() == PowerOff && mAdmin->getState() == PowerOff) {
+                    if (shockButton == LOW) {
+                        // shock Button not pressed, normal mode,  AED poweron
+                        mAed->powerOn();
+                    } else {
+                        // shock button pressed too, admin mode
+                        mAdmin->powerOn();
+                    }
                 } else {
+                    // AED poweroff
                     mAed->powerOff();
+                    // Admin poweroff
+                    mAdmin->powerOff();
                 }
             }
         }
@@ -114,4 +140,9 @@ void playerInit() {
 }
 
 void aedUpdate() {
+}
+
+byte getLang()
+{
+    return SND_LANG_IT;
 }
