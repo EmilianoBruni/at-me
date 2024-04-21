@@ -67,7 +67,6 @@ void Aed::loop()
 void Aed::flowControl()
 {
     // here all aed flowchart logic
-    static unsigned int delayPushButton = 8000;  // delay to play push button
     static unsigned long shockTimer = 0;         // timer for shock
     static unsigned long pushButtonTimer = 0;    // timer if operator does'nt
                                                  // play shock
@@ -112,17 +111,11 @@ void Aed::flowControl()
         inPauseTimer = shockTimer = pushButtonTimer = 0;
     }
 
-    // shock timer every x seconds
-    if (shockTimer > 0 && now - shockTimer > delayPushButton)
-    {
-        shockTimer = now;
-        setState(PushButton, delayPushButton != 8000);
-        delayPushButton = 15000;
-        if (pushButtonTimer == 0)
-            pushButtonTimer = now;
-    }
+    // for timeouting push button state if operator does'nt push button
+    if (state == PushButton && pushButtonTimer == 0)
+        pushButtonTimer = now;
 
-    // pushButtonTimer
+    // if operator does'nt push button in 40 seconds, cancel shock
     if (pushButtonTimer > 0 && now - pushButtonTimer > 40000)
     {
         shockTimer = pushButtonTimer = 0;
@@ -153,7 +146,6 @@ void Aed::flowControl()
     {
         inPauseTimer = 0;
         setState(PadsConnected);
-        // if (analizingTimer == 0) analizingTimer = now;
     }
 }
 
@@ -182,12 +174,8 @@ void Aed::powerOff()
     player.stop();
     setState(PowerOff);
 }
-void Aed::setState(int state)
-{
-    setState(state, 0);
-}
 
-void Aed::setState(int state, int opt)
+void Aed::setState(int state)
 {
     Serial.println("Aed::setState " + String(state) + " lang: " + String(lang));
     WDTCSR |= (_BV(WDCE) | _BV(WDE) | _BV(WDIE)); // Enable the WD Change Bit
@@ -240,8 +228,6 @@ void Aed::setState(int state, int opt)
         break;
     case PushButton:
         play(SND_PUSH_BUTTON);
-        // TO DO:
-        play(SND_PUSH_BUTTON_AGAIN);
         break;
     case ShockCancelled:
         play(SND_SHOCK_CANCEL);
@@ -375,8 +361,6 @@ void Aed::checkPlayNext()
         isrNextStateRequest = PadsNotConnectedAgain2;
         break;
     case SND_PUSH_BUTTON:
-    case SND_PUSH_BUTTON_AGAIN:
-        play(SND_LONG_BEEP);
         break;
     case SND_SHOCK_CANCEL:
     case SND_SHOCK_DELIVERED:
