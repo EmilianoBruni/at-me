@@ -27,8 +27,6 @@
 #define SND_ANALYZING 12
 #define SND_SHOCK_ADVISED 14
 #define SND_PUSH_BUTTON 15
-#define SND_LONG_BEEP 16
-#define SND_PUSH_BUTTON_AGAIN 17
 #define SND_SHOCK_DELIVERED 18
 #define SND_SHOCK_CANCEL 19
 #define SND_SHOCK_NOT_NEEDED 20
@@ -62,7 +60,6 @@ private:
     void play(byte id);
     void setShockLed(bool to_on);
     void setState(int state);
-    void setState(int state, int opt);
     void checkPlayNext();
     void flowControl();
     int toShockOrNotToShock();
