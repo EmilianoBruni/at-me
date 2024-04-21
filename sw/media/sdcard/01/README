@@ -6,11 +6,10 @@ Created with https://ttsfree.com/text-to-speech/italian, TTS Server 2, 100 Itali
 12 - Analisi del ritmo cardiaco in corso, non toccare il paziente
 13 - Scarica non consiglia, se necessario continuare con la rianimazione cardio polmonare
 14 - Scarica consigliata. Carica in corso.
-15 - Premere il pulsante per erogare la scarica (mix with 16)
-16 - 60 sec@1800Hz CB128k Amplitude 0.3
-17 - Erogare la scarica ora
+15 - Erogare la scarica adesso. Premere il pulsante arancione (repeated 4 times) (mix with 16)
+16 - 60 sec@1800Hz CB128k Amplitude 0.1
 18 - Scarica erogata
-19 - Scarica annullata
+19 - Pulsante di scarica non premuto. Scarica annullata.
 20 - Scarica non necessaria.
 25 - Applicare le placche e dopo inserire il connettore
 26 - Premere con decisione le placche sul torace nudo del paziente e dopo inserire il connettore saldamente
