@@ -6,17 +6,19 @@
 
 #define Invalid -1
 #define PowerOff 0
-#define PoweredOn 1
-#define PadsNotConnected 2
-#define PadsConnected 3
-#define Analyzing 4
-#define ShockNotNeeded 5
-#define ShockRequired 6
-#define PushButton 7
-#define ShockDelivered 8
-#define ShockCancelled 9
-#define RequestPauseByShockNotNeeded 10
-#define InPause 99
+#define PoweredOn 10
+#define PadsNotConnected 20
+#define PadsNotConnectedAgain 21
+#define PadsNotConnectedAgain2 22
+#define PadsConnected 30
+#define Analyzing 40
+#define ShockNotNeeded 50
+#define ShockRequired 60
+#define PushButton 70
+#define ShockDelivered 80
+#define ShockCancelled 90
+#define RequestPauseByShockNotNeeded 100
+#define InPause 999
 
 #define SND_UNDEF -1
 #define SND_BEEP 2
@@ -30,6 +32,8 @@
 #define SND_SHOCK_DELIVERED 18
 #define SND_SHOCK_CANCEL 19
 #define SND_SHOCK_NOT_NEEDED 20
+#define SND_LINK_PADS_AGAIN 25
+#define SND_LINK_PADS_AGAIN_2 26
 #define SND_IN_PAUSE 99
 
 #define PRG_TWO_SHOCK_THEN_NOT 1

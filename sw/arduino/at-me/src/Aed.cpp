@@ -96,7 +96,8 @@ void Aed::flowControl()
             padsConnectedTimer = now;
         }
     }
-    else if (padsLinkedState == LOW && state == PadsNotConnected)
+    else if (padsLinkedState == LOW && (state == PadsNotConnected 
+        || state == PadsNotConnectedAgain || state == PadsNotConnectedAgain2))
     {
         // pads connection goes up/down fast
         if (padsConnectedTimer > 0 )
@@ -105,7 +106,7 @@ void Aed::flowControl()
             padsConnectedTimer = 0;
         }
     }
-    else if (padsLinkedState == LOW && state > PadsNotConnected)
+    else if (padsLinkedState == LOW && state > PadsNotConnectedAgain2)
     {
         setState(PadsNotConnected);
         inPauseTimer = shockTimer = pushButtonTimer = 0;
@@ -205,6 +206,12 @@ void Aed::setState(int state, int opt)
         seqCount = 0; // reset sequence count if pad not connected
         play(SND_APPLY_PADS);
         break;
+    case PadsNotConnectedAgain:
+        play(SND_LINK_PADS_AGAIN);
+        break;
+    case PadsNotConnectedAgain2:
+        play(SND_LINK_PADS_AGAIN_2);
+        break;
     case PadsConnected:
         setState(Analyzing);
         break;
@@ -263,7 +270,7 @@ void Aed::togglePadsLed()
 {
     static bool padsLedStatus = false;
     static unsigned long lastChangingTime = 0;
-    if (state > PadsNotConnected)
+    if (state > PadsNotConnectedAgain2)
     {
         // led only blinks when pads not connected else off
         padsLedStatus = false;
@@ -339,6 +346,33 @@ void Aed::checkPlayNext()
         break;
     case SND_APPLY_PADS:
         play(SND_LINK_PADS);
+        break;
+    case SND_LINK_PADS:
+        // wait 8 seconds and now it's time to play again
+        WDTCSR |= (_BV(WDCE) | _BV(WDE) | _BV(WDIE));     // Enable the WD Change Bit
+        WDTCSR = (1 << WDIE) | (1 << WDP3) | (1 << WDP0); // 8s
+        // run watchdog
+        sei();
+        // set watchdog function to execute in 8sec
+        isrNextStateRequest = PadsNotConnectedAgain;
+        break;
+    case SND_LINK_PADS_AGAIN:
+        // wait 8 seconds and now it's time to play again for second time
+        WDTCSR |= (_BV(WDCE) | _BV(WDE) | _BV(WDIE));     // Enable the WD Change Bit
+        WDTCSR = (1 << WDIE) | (1 << WDP3) | (1 << WDP0); // 8s
+        // run watchdog
+        sei();
+        // set watchdog function to execute in 8sec
+        isrNextStateRequest = PadsNotConnectedAgain2;
+        break;
+    case SND_LINK_PADS_AGAIN_2:
+        // wait 8 seconds and new again2
+        WDTCSR |= (_BV(WDCE) | _BV(WDE) | _BV(WDIE));     // Enable the WD Change Bit
+        WDTCSR = (1 << WDIE) | (1 << WDP3) | (1 << WDP0); // 8s
+        // run watchdog
+        sei();
+        // set watchdog function to execute in 8sec
+        isrNextStateRequest = PadsNotConnectedAgain2;
         break;
     case SND_PUSH_BUTTON:
     case SND_PUSH_BUTTON_AGAIN:
