@@ -3,13 +3,19 @@
 #include <DFRobotDFPlayerMini.h>
 #include <Aed.h>
 #include <Admin.h>
+#include <OneButton.h>
+
+// USARE LA LIBRERIA ONEBUTTON PER GESTIRE I PULSANTI
+// SOPRATTUTTO PER LA PARTE ADMIN
+// https://www.github.com/mathertel/OneButton
+// video ITA: https://www.youtube.com/watch?v=ru2kBa9w3oU
 
 #define APP_NAME           "at-me"
 #define APP_VER_MAJOR      0
 #define APP_VER_MINOR      1
 
 #define SND_LANG_IT        1
-
+#define TEST_BOARD         false
 #define PADS_LED_ID        2
 #define PADS_ID            3
 #define SHOCK_BUTTON_ID    4
@@ -19,6 +25,10 @@
 #define SW_SERIAL_RX_ID    8
 #define SW_SERIAL_TX_ID    12
 
+#define BTN_POWER          0
+#define BTN_PADS           1
+#define BTN_SHOCK          2
+
 #define VOLUME_VALUE_INIT  30  // 0..30
 #define POWER_BUTTON_DELAY 500 // press powerButton for 0.5s
 //const int           DEBUG_LED_ID       = LED_BUILTIN;
@@ -26,11 +36,14 @@
 
 void serialInit();
 void digitalInputInit();
+void buttonInit();
+void buttonLoop();
 void powerStateUpdate();
 void playerInit();
 void aedInit();
 void adminInit();
 byte getLang();
+void testBoard();
 
 //bool                powerState = false; // AED is on/off
 bool                audioState = false; // player well initialized?
@@ -39,16 +52,26 @@ SoftwareSerial      mSwSerial(SW_SERIAL_RX_ID,SW_SERIAL_TX_ID);
 DFRobotDFPlayerMini mPlayer;
 Aed*                mAed;
 Admin*              mAdmin;
+OneButton           mButtons[3];
 
 void setup() {
     serialInit();
     digitalInputInit();
+    buttonInit();   // setup OneButton buttons support
     playerInit();
     aedInit();
     adminInit();
+    if (TEST_BOARD) {
+        Serial.println("Test Board Mode ON");
+    }
 }
 
 void loop() {
+    buttonLoop();
+    if (TEST_BOARD) {
+        testBoard();
+        return;
+    }
     powerStateUpdate();
     if (mAed->getState() > PowerOff) mAed->loop();
     if (mAdmin->getState() > PowerOff) mAdmin->loop();
@@ -63,6 +86,7 @@ void adminInit() {
     mAdmin = new Admin(getLang());
 }
 
+
 void serialInit() {
     Serial.begin(115200);
 
@@ -73,8 +97,79 @@ void serialInit() {
 }
 
 void digitalInputInit() {
+    // TODO: Remove after full implementation of OneButton
     pinMode(POWER_BUTTON_ID, INPUT_PULLUP);
     pinMode(SHOCK_BUTTON_ID, INPUT_PULLUP);
+    pinMode(PADS_ID, INPUT);
+
+    pinMode(POWER_LED_ID, OUTPUT);
+    pinMode(PADS_LED_ID, OUTPUT);
+    pinMode(SHOCK_LED_ID, OUTPUT);
+}
+
+void buttonInit() {
+    mButtons[BTN_POWER] = OneButton(POWER_BUTTON_ID, true, true);
+    mButtons[BTN_POWER].attachClick([]() {
+        Serial.println("Power Button Clicked");
+    });
+    mButtons[BTN_POWER].attachDoubleClick([]() {
+        Serial.println("Power Button Double Clicked");
+    });
+    mButtons[BTN_POWER].attachLongPressStart([]() {
+        Serial.println("Power Button Long Press Start");
+    });
+    mButtons[BTN_POWER].attachLongPressStop([]() {
+        Serial.println("Power Button Long Press Stop");
+    });
+
+    mButtons[BTN_PADS] = OneButton(PADS_ID, false, false);
+    mButtons[BTN_PADS].attachClick([]() {
+        Serial.println("Pads Button Clicked");
+    });
+    mButtons[BTN_PADS].attachDoubleClick([]() {
+        Serial.println("Pads Button Double Clicked");
+    });
+    mButtons[BTN_PADS].attachLongPressStart([]() {
+        Serial.println("Pads Button Long Press Start");
+    });
+    mButtons[BTN_PADS].attachLongPressStop([]() {
+        Serial.println("Pads Button Long Press Stop");
+    });
+
+    mButtons[BTN_SHOCK] = OneButton(SHOCK_BUTTON_ID, false, true);
+    mButtons[BTN_SHOCK].attachClick([]() {
+        Serial.println("Shock Button Clicked");
+    });
+    mButtons[BTN_SHOCK].attachDoubleClick([]() {
+        Serial.println("Shock Button Double Clicked");
+    });
+    mButtons[BTN_SHOCK].attachLongPressStart([]() {
+        Serial.println("Shock Button Long Press Start");
+    });
+    mButtons[BTN_SHOCK].attachLongPressStop([]() {
+        Serial.println("Shock Button Long Press Stop");
+    });
+}
+
+void buttonLoop() {
+    for (int i = 0; i < 3; i++) {
+        mButtons[i].tick();
+    }
+}
+
+void testBoard() {
+    // mPlayer.volume(10);
+    // mPlayer.playFolder(SND_LANG_IT, 2); // BEEP
+    // loop through POWER_LED_ID, SHOCK_LED_ID, PADS_LED_ID
+    int leds[3] = {POWER_LED_ID, SHOCK_LED_ID, PADS_LED_ID};
+    for (int i = 0; i < 3; i++) {
+        digitalWrite(leds[i], HIGH);
+    }
+    delay(2000);
+    for (int i = 0; i < 3; i++) {
+        digitalWrite(leds[i], LOW);
+    }
+    delay(2000);
 }
 
 void powerStateUpdate() {
