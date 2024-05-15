@@ -5,7 +5,7 @@
 
 #define Invalid -1
 #define PowerOff 0
-#define PoweredOn 1
+#define PowerOn 1
 
 class Admin
 {

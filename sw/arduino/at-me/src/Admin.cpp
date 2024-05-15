@@ -21,7 +21,7 @@ void Admin::loop()
 
 void Admin::powerOn()
 {
-    setState(PoweredOn);
+    setState(PowerOn);
 }
 
 void Admin::powerOff()
