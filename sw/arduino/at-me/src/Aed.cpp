@@ -34,10 +34,6 @@ Aed::Aed(byte lang, DFRobotDFPlayerMini player, byte pin_power_led, byte pin_pad
 
 void Aed::setup()
 {
-    pinMode(pin_power_led, OUTPUT);
-    pinMode(pin_pads, INPUT);
-    pinMode(pin_pads_led, OUTPUT);
-    pinMode(pin_shock_led, OUTPUT);
     powerOff();
 
     // // ISR init (wdt_enbled/wdt_disabled is BUGGED and reset card)
