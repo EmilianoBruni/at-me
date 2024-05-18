@@ -25,10 +25,16 @@
 #define SW_SERIAL_RX_ID    8
 // in old PCB version < 0.6, TX is 12, in new PCB version, TX is 9
 #define SW_SERIAL_TX_ID    APP_VER_MINOR < 6 ? 12 : 9
+// in PCB version 0.5, SETUP_TOP_BTN_ID is 9, in new PCB version, SETUP_TOP_BTN_ID is 10
+#define SETUP_TOP_BTN_ID   APP_VER_MINOR == 5 ? 9 : 10
+// in PCB version 0.5, SETUP_BTM_LED_ID is 10, in new PCB version, SETUP_BTM_LED_ID is 11
+#define SETUP_BTM_LED_ID   APP_VER_MINOR == 5 ? 10 : 11
 
 #define BTN_POWER          0
 #define BTN_PADS           1
 #define BTN_SHOCK          2
+#define BTN_SETUP_TOP      3
+#define BTN_SETUP_BTM      4
 
 #define VOLUME_VALUE_INIT  30  // 0..30
 #define POWER_BUTTON_DELAY 500 // press powerButton for 0.5s
@@ -53,7 +59,7 @@ SoftwareSerial      mSwSerial(SW_SERIAL_RX_ID,SW_SERIAL_TX_ID);
 DFRobotDFPlayerMini mPlayer;
 Aed*                mAed;
 Admin*              mAdmin;
-OneButton           mButtons[3];
+OneButton           mButtons[5];
 
 void setup() {
     serialInit();
@@ -150,10 +156,42 @@ void buttonInit() {
     mButtons[BTN_SHOCK].attachLongPressStop([]() {
         Serial.println("Shock Button Long Press Stop");
     });
+
+    // one button for SETUP_TOP_BTN_ID
+    mButtons[BTN_SETUP_TOP] = OneButton(SETUP_TOP_BTN_ID, true, true);
+    mButtons[BTN_SETUP_TOP].attachClick([]() {
+        Serial.println("Setup Top Button Clicked");
+    });
+    mButtons[BTN_SETUP_TOP].attachDoubleClick([]() {
+        Serial.println("Setup Top Button Double Clicked");
+    });
+    mButtons[BTN_SETUP_TOP].attachLongPressStart([]() {
+        Serial.println("Setup Top Button Long Press Start");
+    });
+    mButtons[BTN_SETUP_TOP].attachLongPressStop([]() {
+        Serial.println("Setup Top Button Long Press Stop");
+    });
+
+    // one button for SETUP_BTM_LED_ID
+    mButtons[BTN_SETUP_BTM] = OneButton(SETUP_BTM_LED_ID, true, true);
+    mButtons[BTN_SETUP_BTM].attachClick([]() {
+        Serial.println("Setup Bottom Button Clicked");
+    });
+    mButtons[BTN_SETUP_BTM].attachDoubleClick([]() {
+        Serial.println("Setup Bottom Button Double Clicked");
+    });
+    mButtons[BTN_SETUP_BTM].attachLongPressStart([]() {
+        Serial.println("Setup Bottom Button Long Press Start");
+    });
+    mButtons[BTN_SETUP_BTM].attachLongPressStop([]() {
+        Serial.println("Setup Bottom Button Long Press Stop");
+    });
+
+
 }
 
 void buttonLoop() {
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 5; i++) {
         mButtons[i].tick();
     }
 }
