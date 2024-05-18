@@ -12,7 +12,7 @@
 
 #define APP_NAME           "at-me"
 #define APP_VER_MAJOR      0
-#define APP_VER_MINOR      1
+#define APP_VER_MINOR      5
 
 #define SND_LANG_IT        1
 #define TEST_BOARD         false
@@ -23,7 +23,8 @@
 #define POWER_BUTTON_ID    6
 #define POWER_LED_ID       7
 #define SW_SERIAL_RX_ID    8
-#define SW_SERIAL_TX_ID    12
+// in old PCB version < 0.6, TX is 12, in new PCB version, TX is 9
+#define SW_SERIAL_TX_ID    APP_VER_MINOR < 6 ? 12 : 9
 
 #define BTN_POWER          0
 #define BTN_PADS           1
