@@ -5,11 +5,6 @@
 #include <Admin.h>
 #include <OneButton.h>
 
-// USARE LA LIBRERIA ONEBUTTON PER GESTIRE I PULSANTI
-// SOPRATTUTTO PER LA PARTE ADMIN
-// https://www.github.com/mathertel/OneButton
-// video ITA: https://www.youtube.com/watch?v=ru2kBa9w3oU
-
 #define APP_NAME           "at-me"
 #define APP_VER_MAJOR      0
 #define APP_VER_MINOR      5
@@ -36,7 +31,7 @@
 #define BTN_SETUP_TOP      3
 #define BTN_SETUP_BTM      4
 
-#define VOLUME_VALUE_INIT  30  // 0..30
+#define VOLUME_VALUE_INIT  25  // 0..30
 #define POWER_BUTTON_DELAY 500 // press powerButton for 0.5s
 //const int           DEBUG_LED_ID       = LED_BUILTIN;
 
@@ -80,7 +75,12 @@ void loop() {
         return;
     }
     powerStateUpdate();
-    if (mAed->getState() > PowerOff) mAed->loop();
+    if (mAed->getState() > PowerOff) {
+        mAed->loop();
+    }  else {
+        // this is required to allow setVolume buttons (setup_top an setup_btm) to work
+        if (mPlayer.available()) { mPlayer.readType(); }
+    }
     if (mAdmin->getState() > PowerOff) mAdmin->loop();
 }
 
@@ -90,7 +90,7 @@ void aedInit() {
 }
 
 void adminInit() {
-    mAdmin = new Admin(getLang());
+    mAdmin = new Admin(getLang(), mPlayer);
 }
 
 
@@ -172,6 +172,12 @@ void buttonInit() {
         Serial.println("Setup Top Button Long Press Stop");
     });
 
+    mButtons[BTN_SETUP_TOP].attachClick([]() {
+        if (mAed->getState() == PowerOff) {
+            mAdmin->volumeUp();
+        }
+    });
+
     // one button for SETUP_BTM_LED_ID
     mButtons[BTN_SETUP_BTM] = OneButton(SETUP_BTM_LED_ID, true, true);
     mButtons[BTN_SETUP_BTM].attachClick([]() {
@@ -185,6 +191,12 @@ void buttonInit() {
     });
     mButtons[BTN_SETUP_BTM].attachLongPressStop([]() {
         Serial.println("Setup Bottom Button Long Press Stop");
+    });
+
+    mButtons[BTN_SETUP_BTM].attachClick([]() {
+        if (mAed->getState() == PowerOff) {
+            mAdmin->volumeDown();
+        }
     });
 
 
@@ -262,7 +274,8 @@ void playerInit() {
     mSwSerial.begin(9600);
 
     Serial.println(F("Initializing player... (may take 3..5 seconds)"));
-    audioState = mPlayer.begin(mSwSerial);
+    // isAck = false - https://github.com/DFRobot/DFRobotDFPlayerMini/issues/57
+    audioState = mPlayer.begin(mSwSerial, false);
     if (!audioState) {
         Serial.println(F("--- ERR: Unable to initializing player"));
         return;
