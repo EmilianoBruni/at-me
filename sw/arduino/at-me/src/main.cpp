@@ -31,7 +31,6 @@
 #define BTN_SETUP_TOP      3
 #define BTN_SETUP_BTM      4
 
-#define VOLUME_VALUE_INIT  25  // 0..30
 #define POWER_BUTTON_DELAY 500 // press powerButton for 0.5s
 //const int           DEBUG_LED_ID       = LED_BUILTIN;
 
@@ -282,8 +281,6 @@ void playerInit() {
     }
     Serial.println(F("--- Player online"));
     mPlayer.setTimeOut(500);
-    mPlayer.volume(VOLUME_VALUE_INIT);
-
 }
 
 void aedUpdate() {
