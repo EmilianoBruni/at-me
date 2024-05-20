@@ -1,9 +1,11 @@
 #include "Admin.h"
+#include <EEPROM.h>
 
 Admin::Admin(byte lang, DFRobotDFPlayerMini player)
 {
     this->lang = lang;
     this->player = player;
+    this->readState();
     setup();
 }
 
@@ -11,6 +13,21 @@ Admin::~Admin()
 {
 }
 
+void Admin::readState()
+{
+    // read from EEPROM
+    EEPROM.get(0, this->eeState);
+    Serial.print(F("Admin::readState volume: "));
+    Serial.println(eeState.volume);
+    // init eeState if not valid
+    if (this->eeState.volume == Invalid) {
+        this->eeState.volume = VOLUME_VALUE_INIT;
+    }
+    // init player volume
+    delay(100); // to permit volume change and received serial response to this command
+    this->player.volume(this->volume());
+}
+    
 void Admin::setup() 
 {
     this->powerOff();
@@ -43,10 +60,11 @@ int Admin::getState()
 
 void Admin::volumeUp()
 {
-    int volume = this->player.readVolume();
+    //int volume = this->player.readVolume();
+    int volume = this->volume();
     Serial.println("Admin::volumeUp " + String(volume));
     if (volume < 30) {
-        this->player.volume(volume + 5);
+        this->volume(volume + 5);
         delay(50);  // to permit volume change and received serial response to this command
         this->player.playFolder(1, 98);
     } else {
@@ -58,12 +76,25 @@ void Admin::volumeUp()
 
 void Admin::volumeDown()
 {   
-    int volume = this->player.readVolume();
+    //int volume = this->player.readVolume();
+    int volume = this->volume();
     Serial.println("Admin::volumeDown " + String(volume));
     if (volume > 0) {
-        this->player.volume(volume - 5);
+        this->volume(volume - 5);
         delay(50);  // to permit volume change and received serial response to this command
         this->player.playFolder(1, 98);
     }
 
+}
+
+int Admin::volume(int newVolume)
+{
+    if (newVolume != -1) {
+        this->player.volume(newVolume);
+        this->eeState.volume = newVolume;
+        Serial.print(F("Admin::volume "));
+        Serial.println(this->eeState.volume);
+        EEPROM.put(0, this->eeState);
+    }
+    return this->eeState.volume;
 }
