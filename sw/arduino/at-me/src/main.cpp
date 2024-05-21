@@ -12,7 +12,7 @@
 #define SND_LANG_IT        1
 #define TEST_BOARD         false
 #define PADS_LED_ID        2
-#define PADS_ID            3
+#define PADS_BTN_ID        3
 #define SHOCK_BUTTON_ID    4
 #define SHOCK_LED_ID       5
 #define POWER_BUTTON_ID    6
@@ -23,7 +23,7 @@
 // in PCB version 0.5, SETUP_TOP_BTN_ID is 9, in new PCB version, SETUP_TOP_BTN_ID is 10
 #define SETUP_TOP_BTN_ID   APP_VER_MINOR == 5 ? 9 : 10
 // in PCB version 0.5, SETUP_BTM_BTN_ID is 10, in new PCB version, SETUP_BTM_BTN_ID is 11
-#define SETUP_BTM_LED_ID   APP_VER_MINOR == 5 ? 10 : 11
+#define SETUP_BTM_BTN_ID   APP_VER_MINOR == 5 ? 10 : 11
 
 #define BTN_POWER          0
 #define BTN_PADS           1
@@ -84,7 +84,7 @@ void loop() {
 }
 
 void aedInit() {
-    mAed = new Aed(getLang(), mPlayer, POWER_LED_ID, PADS_ID,PADS_LED_ID,
+    mAed = new Aed(getLang(), mPlayer, POWER_LED_ID, PADS_BTN_ID,PADS_LED_ID,
                    SHOCK_BUTTON_ID,SHOCK_LED_ID);
 }
 
@@ -106,7 +106,7 @@ void digitalInputInit() {
     // TODO: Remove after full implementation of OneButton
     pinMode(POWER_BUTTON_ID, INPUT_PULLUP);
     pinMode(SHOCK_BUTTON_ID, INPUT_PULLUP);
-    pinMode(PADS_ID, INPUT);
+    pinMode(PADS_BTN_ID, INPUT_PULLUP);
 
     pinMode(POWER_LED_ID, OUTPUT);
     pinMode(PADS_LED_ID, OUTPUT);
@@ -128,7 +128,7 @@ void buttonInit() {
         Serial.println("Power Button Long Press Stop");
     });
 
-    mButtons[BTN_PADS] = OneButton(PADS_ID, false, false);
+    mButtons[BTN_PADS] = OneButton(PADS_BTN_ID, false, false);
     mButtons[BTN_PADS].attachClick([]() {
         Serial.println("Pads Button Clicked");
     });
