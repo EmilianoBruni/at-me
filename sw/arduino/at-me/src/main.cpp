@@ -7,7 +7,7 @@
 
 #define APP_NAME           "at-me"
 #define APP_VER_MAJOR      0
-#define APP_VER_MINOR      5
+#define APP_VER_MINOR      6
 
 #define SND_LANG_IT        1
 #define TEST_BOARD         false
@@ -22,7 +22,7 @@
 #define SW_SERIAL_TX_ID    APP_VER_MINOR < 6 ? 12 : 9
 // in PCB version 0.5, SETUP_TOP_BTN_ID is 9, in new PCB version, SETUP_TOP_BTN_ID is 10
 #define SETUP_TOP_BTN_ID   APP_VER_MINOR == 5 ? 9 : 10
-// in PCB version 0.5, SETUP_BTM_LED_ID is 10, in new PCB version, SETUP_BTM_LED_ID is 11
+// in PCB version 0.5, SETUP_BTM_BTN_ID is 10, in new PCB version, SETUP_BTM_BTN_ID is 11
 #define SETUP_BTM_LED_ID   APP_VER_MINOR == 5 ? 10 : 11
 
 #define BTN_POWER          0
@@ -142,7 +142,7 @@ void buttonInit() {
         Serial.println("Pads Button Long Press Stop");
     });
 
-    mButtons[BTN_SHOCK] = OneButton(SHOCK_BUTTON_ID, false, true);
+    mButtons[BTN_SHOCK] = OneButton(SHOCK_BUTTON_ID, true, true);
     mButtons[BTN_SHOCK].attachClick([]() {
         Serial.println("Shock Button Clicked");
     });
@@ -177,8 +177,8 @@ void buttonInit() {
         }
     });
 
-    // one button for SETUP_BTM_LED_ID
-    mButtons[BTN_SETUP_BTM] = OneButton(SETUP_BTM_LED_ID, true, true);
+    // one button for SETUP_BTM_BTN_ID
+    mButtons[BTN_SETUP_BTM] = OneButton(SETUP_BTM_BTN_ID, true, true);
     mButtons[BTN_SETUP_BTM].attachClick([]() {
         Serial.println("Setup Bottom Button Clicked");
     });
