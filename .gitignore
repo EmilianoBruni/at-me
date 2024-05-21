@@ -32,3 +32,7 @@
 *.app
 /diagrams/at-me_schem.pdf
 /diagrams/at-me_bb.pdf
+
+/not_in_git/
+/**/lock
+/**/db.transit.json
