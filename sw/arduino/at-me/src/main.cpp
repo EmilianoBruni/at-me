@@ -7,7 +7,7 @@
 
 #define APP_NAME           "at-me"
 #define APP_VER_MAJOR      0
-#define APP_VER_MINOR      6
+#define APP_VER_MINOR      7
 
 #define SND_LANG_IT        1
 #define TEST_BOARD         false
@@ -128,7 +128,7 @@ void buttonInit() {
         Serial.println("Power Button Long Press Stop");
     });
 
-    mButtons[BTN_PADS] = OneButton(PADS_BTN_ID, false, false);
+    mButtons[BTN_PADS] = OneButton(PADS_BTN_ID, true, true);
     mButtons[BTN_PADS].attachClick([]() {
         Serial.println("Pads Button Clicked");
     });
@@ -250,7 +250,7 @@ void powerStateUpdate() {
                 Serial.println("mAdmin state: " + String(mAdmin->getState()));
                 Serial.println("Shock button: " + String(shockButton));
                 if (mAed->getState() == PowerOff && mAdmin->getState() == PowerOff) {
-                    if (shockButton == LOW) {
+                    if (shockButton == HIGH) {
                         // shock Button not pressed, normal mode,  AED poweron
                         mAed->powerOn();
                     } else {
