@@ -20,12 +20,16 @@ void Admin::readState()
     Serial.print(F("Admin::readState volume: "));
     Serial.println(eeState.volume);
     // init eeState if not valid
-    if (this->eeState.volume == Invalid) {
-        this->eeState.volume = VOLUME_VALUE_INIT;
+    delay(100); // to permit volume change and received serial response to this command
+    if (this->eeState.volume == Invalid || this->eeState.volume < 0 || this->eeState.volume > 30) {
+        //this->eeState.volume = VOLUME_VALUE_INIT;
+        this->volume(VOLUME_VALUE_INIT);
+    } else {
+        this->volume(this->eeState.volume);
     }
     // init player volume
-    delay(100); // to permit volume change and received serial response to this command
-    this->player.volume(this->volume());
+    //delay(100); // to permit volume change and received serial response to this command
+    //this->player.volume(this->volume());
 }
     
 void Admin::setup() 
